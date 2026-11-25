@@ -1,25 +1,340 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VocalAid</title>
+<title>VocalAid · Separa la voz y ensaya</title>
+<meta name="description" content="VocalAid separa la voz de la música en tu teléfono, sin nube, y te deja ensayar a tu tono y a tu velocidad.">
+<meta name="theme-color" content="#1e6ff0">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+<meta property="og:title" content="VocalAid">
+<meta property="og:description" content="Separa la voz de la música en tu teléfono y ensaya a tu tono y a tu velocidad.">
+<meta property="og:image" content="https://rolandogarciarocha.github.io/img/icon-512.png">
+<script>
+  // Spanish unless the browser asks for something else; a click on ES/EN is remembered.
+  (function () {
+    var lang = "es";
+    try {
+      var saved = localStorage.getItem("lang");
+      if (saved === "es" || saved === "en") lang = saved;
+      else if (!/^es\b/i.test(navigator.language || "es")) lang = "en";
+    } catch (e) {}
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.lang = lang;
+  })();
+</script>
 <style>
-  :root { --bg: #f5f7fb; --fg: #0f1a2e; --muted: #55627a; --accent: #1e6ff0; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #0c1220; --fg: #e8eefb; --muted: #9aa8c2; --accent: #6aa8ff; } }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 system-ui, "Segoe UI", sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 64px 20px; }
-  h1 { font-size: 40px; margin: 0 0 8px; }
-  p { color: var(--muted); }
+  :root {
+    --blue-1: #4facfe; --blue-2: #1e6ff0; --navy: #0b2a66;
+    --bg: #f5f7fb; --surface: #ffffff; --fg: #0f1a2e; --muted: #55627a; --line: #e2e7f0;
+    --accent: #1e6ff0; --accent-soft: #e6efff; --green: #1fb954;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b1220; --surface: #121b2e; --fg: #e8eefb; --muted: #9aa8c2; --line: #223050;
+            --accent: #6aa8ff; --accent-soft: #16264a; }
+  }
+  html[data-lang="es"] [lang="en"], html[data-lang="en"] [lang="es"] { display: none !important; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
   a { color: var(--accent); }
+  img { display: block; max-width: 100%; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+  /* Header */
+  header { position: absolute; inset: 0 0 auto 0; z-index: 2; }
+  .bar { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; font-size: 20px; }
+  .brand img { width: 36px; height: 36px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+  .langs { display: flex; gap: 2px; background: rgba(255,255,255,.16); border-radius: 999px; padding: 3px; }
+  .langs button { border: 0; background: transparent; color: #fff; font: 600 13px/1 system-ui, sans-serif;
+                  padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+  html[data-lang="es"] .langs [data-set="es"], html[data-lang="en"] .langs [data-set="en"] { background: #fff; color: var(--blue-2); }
+
+  /* Hero */
+  .hero { color: #fff; overflow: hidden; position: relative;
+          background: radial-gradient(1100px 600px at 15% 10%, var(--blue-1) 0%, transparent 60%),
+                      linear-gradient(135deg, var(--blue-2) 0%, #1857c9 55%, var(--navy) 100%); }
+  .hero .wrap { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center;
+                padding-top: 120px; padding-bottom: 0; }
+  .hero h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -.02em; }
+  .hero p.lead { font-size: clamp(18px, 2.2vw, 21px); color: rgba(255,255,255,.9); margin: 0 0 28px; max-width: 34ch; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
+  .chip { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22); border-radius: 999px;
+          padding: 6px 14px; font-size: 14px; font-weight: 600; }
+  .play { display: inline-flex; align-items: center; gap: 12px; background: #000; color: #fff; text-decoration: none;
+          border-radius: 12px; padding: 10px 18px 10px 14px; border: 1px solid rgba(255,255,255,.25); }
+  .play svg { width: 26px; height: 26px; }
+  .play small { display: block; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
+  .play strong { display: block; font-size: 19px; line-height: 1.1; }
+  .hero-shot { align-self: end; justify-self: center; width: min(340px, 80vw); margin-bottom: -90px; }
+  .wave { display: flex; align-items: center; gap: 3px; height: 34px; margin: 0 0 30px; opacity: .9; }
+  .wave i { display: block; width: 4px; border-radius: 2px; background: #fff; }
+
+  /* Phone frame */
+  .phone { background: #0d0f14; border-radius: 38px; padding: 10px; box-shadow: 0 30px 60px rgba(4,14,40,.45), 0 0 0 1px rgba(255,255,255,.06) inset; }
+  .phone img { border-radius: 29px; width: 100%; height: auto; aspect-ratio: 720 / 1411; background: #1b1b1f; }
+
+  /* Sections */
+  section { padding: 96px 0; }
+  .hero + section { padding-top: 150px; }
+  h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 12px; letter-spacing: -.01em; }
+  .intro { color: var(--muted); max-width: 60ch; margin: 0 0 40px; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; }
+  .card h3 { margin: 14px 0 10px; font-size: 20px; }
+  .card ul { margin: 0; padding-left: 20px; color: var(--muted); }
+  .card li { margin: 6px 0; }
+  .icon { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); color: var(--accent);
+          display: grid; place-items: center; }
+  .icon svg { width: 26px; height: 26px; }
+
+  /* Gallery */
+  .gallery { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 22px;
+             overflow-x: auto; scroll-snap-type: x mandatory; padding: 6px 4px 24px; }
+  .gallery figure { margin: 0; scroll-snap-align: start; }
+  .gallery .phone { border-radius: 30px; padding: 8px; box-shadow: 0 16px 34px rgba(10,30,80,.22); }
+  .gallery .phone img { border-radius: 23px; }
+  .gallery figcaption { text-align: center; font-weight: 600; margin-top: 14px; font-size: 15px; }
+
+  /* Privacy band */
+  .band { background: linear-gradient(135deg, var(--blue-2), var(--navy)); color: #fff; border-radius: 26px;
+          padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
+  .band h2 { color: #fff; }
+  .band p { color: rgba(255,255,255,.88); margin: 0 0 16px; }
+  .band a { color: #fff; font-weight: 600; }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .checks li { display: flex; gap: 12px; align-items: flex-start; font-weight: 600; }
+  .checks svg { flex: none; width: 24px; height: 24px; color: #7ff0a8; margin-top: 1px; }
+
+  /* Plans */
+  .plans { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .plan { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 28px; }
+  .plan.pro { border: 2px solid var(--accent); }
+  .plan h3 { margin: 0 0 6px; font-size: 22px; }
+  .plan .tag { display: inline-block; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+               border-radius: 999px; padding: 3px 10px; margin-bottom: 12px; }
+  .plan p { margin: 0; color: var(--muted); }
+  .req { margin-top: 28px; color: var(--muted); font-size: 15.5px; max-width: 75ch; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 15px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; align-items: center; }
+  footer nav { display: flex; gap: 20px; }
+
+  @media (max-width: 860px) {
+    .hero .wrap { grid-template-columns: 1fr; padding-top: 104px; text-align: left; }
+    .hero-shot { width: min(300px, 78vw); margin-bottom: -70px; }
+    .hero + section { padding-top: 120px; }
+    .grid, .plans, .band { grid-template-columns: 1fr; }
+    .band { padding: 32px 24px; }
+    section { padding: 72px 0; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>VocalAid</h1>
-  <p>Separa la voz de la música en tu teléfono y ensaya a tu tono y a tu velocidad. Sin nube: tus canciones no salen de tu dispositivo.</p>
-  <p>Split the vocals from the music on your phone and practice in your key and tempo. No cloud: your songs never leave your device.</p>
-  <p><a href="vocalaid/privacidad.html">Política de privacidad · Privacy policy</a></p>
-</main>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="./"><img src="img/icon-192.png" alt="" width="36" height="36">VocalAid</a>
+    <div class="langs" role="group" aria-label="Idioma / Language">
+      <button type="button" data-set="es">ES</button>
+      <button type="button" data-set="en">EN</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <h1><span lang="es">Separa la voz.<br>Ensaya a tu manera.</span><span lang="en">Split the vocals.<br>Practice your way.</span></h1>
+      <p class="lead">
+        <span lang="es">VocalAid separa la voz del acompañamiento en tu teléfono y te deja ensayar a tu tono y a tu velocidad.</span>
+        <span lang="en">VocalAid separates the vocals from the accompaniment on your phone and lets you rehearse in your key and at your tempo.</span>
+      </p>
+      <div class="wave" aria-hidden="true" id="wave"></div>
+      <div class="chips">
+        <span class="chip"><span lang="es">Sin nube</span><span lang="en">No cloud</span></span>
+        <span class="chip"><span lang="es">Sin cuenta</span><span lang="en">No account</span></span>
+        <span class="chip"><span lang="es">Para cantantes</span><span lang="en">Made for singers</span></span>
+      </div>
+      <!-- When the app is public, turn this into a link:
+           <a class="play" href="https://play.google.com/store/apps/details?id=com.tallercanto.vocalaid.store"> -->
+      <div class="play" aria-label="Google Play">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#34A853" d="M3.6 2.3 13.4 12l-9.8 9.7c-.3-.2-.5-.6-.5-1.1V3.4c0-.5.2-.9.5-1.1z"/><path fill="#FBBC04" d="m16.7 15.3-3.3-3.3 3.3-3.3 3.9 2.2c1.1.6 1.1 1.6 0 2.2z"/><path fill="#4285F4" d="M16.7 8.7 13.4 12 3.6 2.3c.3-.2.8-.2 1.3.1z"/><path fill="#EA4335" d="M16.7 15.3 4.9 21.6c-.5.3-1 .3-1.3.1l9.8-9.7z"/></svg>
+        <span><small lang="es">Muy pronto en</small><small lang="en">Coming soon to</small><strong>Google Play</strong></span>
+      </div>
+    </div>
+    <div class="hero-shot phone">
+      <img lang="es" src="img/es/mixer.webp" alt="El mezclador de VocalAid con la voz y el acompañamiento por separado" width="720" height="1411">
+      <img lang="en" src="img/en/mixer.webp" alt="The VocalAid mixer with the vocals and the accompaniment apart" width="720" height="1411">
+    </div>
+  </div>
+</div>
+
+<section id="funciones">
+  <div class="wrap">
+    <h2><span lang="es">Todo lo que necesitas para ensayar</span><span lang="en">Everything you need to rehearse</span></h2>
+    <p class="intro">
+      <span lang="es">Importa una canción desde tu teléfono. VocalAid separa la voz ahí mismo y la ensayas en un mezclador hecho para cantantes.</span>
+      <span lang="en">Import a song from your phone. VocalAid separates the vocals right there and you rehearse with a mixer built for singers.</span>
+    </p>
+    <div class="grid">
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M8 7v10M4 10v4M16 6v12M20 9v6"/></svg></div>
+        <h3><span lang="es">Separa la voz, sin nube</span><span lang="en">Separate the vocals, no cloud</span></h3>
+        <ul lang="es">
+          <li>Una red neuronal separa voz y acompañamiento dentro de tu teléfono.</li>
+          <li>Tus archivos no salen del dispositivo: no hay cuenta ni servidor.</li>
+          <li>Importa canciones en MP3, WAV o FLAC.</li>
+        </ul>
+        <ul lang="en">
+          <li>A neural network separates vocals and accompaniment inside your phone.</li>
+          <li>Your files never leave the device: no account, no server.</li>
+          <li>Import songs in MP3, WAV or FLAC.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M12 4v16M18 4v16"/><circle cx="6" cy="9" r="2" fill="currentColor"/><circle cx="12" cy="15" r="2" fill="currentColor"/><circle cx="18" cy="7" r="2" fill="currentColor"/></svg></div>
+        <h3><span lang="es">Un mezclador para ensayar</span><span lang="en">A mixer made for practice</span></h3>
+        <ul lang="es">
+          <li>Sube, baja o silencia la voz y la música por separado.</li>
+          <li>Cambia el tono sin cambiar la velocidad, y al revés.</li>
+          <li>Voz a un audífono y música al otro.</li>
+          <li>Ajustes solo para la voz: octava, timbre y claridad.</li>
+        </ul>
+        <ul lang="en">
+          <li>Raise, lower or mute the vocals and the music independently.</li>
+          <li>Change the key without changing the tempo, and the other way round.</li>
+          <li>Vocals in one earbud, music in the other.</li>
+          <li>Voice-only controls: octave, timbre and clarity.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg></div>
+        <h3><span lang="es">Ensaya la parte difícil</span><span lang="en">Drill the hard part</span></h3>
+        <ul lang="es">
+          <li>Bucle A-B para repetir un pasaje una vez, dos o sin fin.</li>
+          <li>Marca tus entradas y salidas, con cuenta regresiva antes de cada una.</li>
+          <li>Metrónomo y cuenta inicial, cada uno con su volumen.</li>
+        </ul>
+        <ul lang="en">
+          <li>A-B loop to repeat a passage once, twice or endlessly.</li>
+          <li>Mark your entrances and exits, with a countdown before each one.</li>
+          <li>Metronome and count-in, each with its own volume.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>
+        <h3><span lang="es">Tu repertorio en orden</span><span lang="en">Your repertoire, organised</span></h3>
+        <ul lang="es">
+          <li>Tonalidad y BPM de cada pieza.</li>
+          <li>Listas para cada concierto, misa o clase, y favoritos.</li>
+          <li>Sigue sonando en segundo plano y en Android Auto.</li>
+        </ul>
+        <ul lang="en">
+          <li>Key and BPM of every piece.</li>
+          <li>Playlists for each concert, service or lesson, plus favorites.</li>
+          <li>Keeps playing in the background and in Android Auto.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="capturas" style="padding-top:0">
+  <div class="wrap">
+    <h2><span lang="es">Así se ve</span><span lang="en">See it in action</span></h2>
+    <p class="intro"><span lang="es">Capturas reales de la app.</span><span lang="en">Real screenshots of the app.</span></p>
+    <div class="gallery">
+      <figure><div class="phone"><img lang="es" src="img/es/mixer.webp" alt="" loading="lazy" width="720" height="1411"><img lang="en" src="img/en/mixer.webp" alt="" loading="lazy" width="720" height="1411"></div>
+        <figcaption><span lang="es">Voz y música por separado</span><span lang="en">Vocals and music, apart</span></figcaption></figure>
+      <figure><div class="phone"><img lang="es" src="img/es/stems.webp" alt="" loading="lazy" width="720" height="1411"><img lang="en" src="img/en/stems.webp" alt="" loading="lazy" width="720" height="1411"></div>
+        <figcaption><span lang="es">Cada pista a tu medida</span><span lang="en">Every track your way</span></figcaption></figure>
+      <figure><div class="phone"><img lang="es" src="img/es/pitch_speed.webp" alt="" loading="lazy" width="720" height="1411"><img lang="en" src="img/en/pitch_speed.webp" alt="" loading="lazy" width="720" height="1411"></div>
+        <figcaption><span lang="es">Otro tono, mismo tempo</span><span lang="en">New key, same tempo</span></figcaption></figure>
+      <figure><div class="phone"><img lang="es" src="img/es/voice.webp" alt="" loading="lazy" width="720" height="1411"><img lang="en" src="img/en/voice.webp" alt="" loading="lazy" width="720" height="1411"></div>
+        <figcaption><span lang="es">Ajustes solo para la voz</span><span lang="en">Controls just for the voice</span></figcaption></figure>
+      <figure><div class="phone"><img lang="es" src="img/es/playlists.webp" alt="" loading="lazy" width="720" height="1411"><img lang="en" src="img/en/playlists.webp" alt="" loading="lazy" width="720" height="1411"></div>
+        <figcaption><span lang="es">Listas para cada ensayo</span><span lang="en">A playlist per rehearsal</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="privacidad" style="padding-top:0">
+  <div class="wrap">
+    <div class="band">
+      <div>
+        <h2><span lang="es">Tu música se queda contigo</span><span lang="en">Your music stays with you</span></h2>
+        <p><span lang="es">La separación corre completa en tu teléfono. VocalAid no tiene cuentas ni servidores, y no sube tus canciones a ningún lado.</span>
+           <span lang="en">Separation runs entirely on your phone. VocalAid has no accounts and no servers, and never uploads your songs anywhere.</span></p>
+        <a href="vocalaid/privacidad.html"><span lang="es">Lee la política de privacidad →</span><span lang="en">Read the privacy policy →</span></a>
+      </div>
+      <ul class="checks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span lang="es">Sin cuenta ni inicio de sesión</span><span lang="en">No account, no sign-in</span></span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span lang="es">Tus archivos no salen del teléfono</span><span lang="en">Your files never leave the phone</span></span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span lang="es">Funciona sin internet una vez instalada</span><span lang="en">Works offline once installed</span></span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><span lang="es">Sincroniza entre tus equipos por tu Wi-Fi</span><span lang="en">Syncs between your devices over your Wi-Fi</span></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="precio" style="padding-top:0">
+  <div class="wrap">
+    <h2><span lang="es">Gratis, con todas las funciones</span><span lang="en">Free, with every feature</span></h2>
+    <p class="intro"><span lang="es">No hay funciones bloqueadas. Pro solo quita los anuncios.</span><span lang="en">Nothing is locked. Pro only removes the ads.</span></p>
+    <div class="plans">
+      <div class="plan">
+        <span class="tag"><span lang="es">Gratis</span><span lang="en">Free</span></span>
+        <h3><span lang="es">VocalAid</span><span lang="en">VocalAid</span></h3>
+        <p><span lang="es">Todo incluido. Muestra un anuncio pequeño en las pantallas de listas, nunca en el mezclador.</span>
+           <span lang="en">Everything included. Shows a small ad on the list screens, never in the mixer.</span></p>
+      </div>
+      <div class="plan pro">
+        <span class="tag">Pro</span>
+        <h3><span lang="es">VocalAid Pro</span><span lang="en">VocalAid Pro</span></h3>
+        <p><span lang="es">Suscripción mensual en Google Play que quita los anuncios. Todo lo demás es igual.</span>
+           <span lang="en">A monthly Google Play subscription that removes the ads. Everything else is the same.</span></p>
+      </div>
+    </div>
+    <p class="req">
+      <span lang="es"><b>Requisitos:</b> un teléfono Android con procesador de 64 bits (ARM64) y al menos 4 GB de RAM, porque la separación corre en tu teléfono. El tiempo que tarda depende de tu equipo.</span>
+      <span lang="en"><b>Requirements:</b> an Android phone with a 64-bit (ARM64) processor and at least 4 GB of RAM, because separation runs on your phone. How long it takes depends on your device.</span>
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 VocalAid</span>
+    <nav>
+      <a href="vocalaid/privacidad.html"><span lang="es">Privacidad</span><span lang="en">Privacy</span></a>
+      <a href="#funciones"><span lang="es">Funciones</span><span lang="en">Features</span></a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll(".langs button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var lang = b.getAttribute("data-set");
+      document.documentElement.setAttribute("data-lang", lang);
+      document.documentElement.lang = lang;
+      try { localStorage.setItem("lang", lang); } catch (e) {}
+    });
+  });
+  // Decorative waveform under the title.
+  (function () {
+    var w = document.getElementById("wave"), n = 46;
+    for (var i = 0; i < n; i++) {
+      var h = 6 + Math.round(28 * Math.abs(Math.sin(i * 0.55) * Math.cos(i * 0.21)));
+      var bar = document.createElement("i");
+      bar.style.height = h + "px";
+      w.appendChild(bar);
+    }
+  })();
+</script>
 </body>
 </html>
